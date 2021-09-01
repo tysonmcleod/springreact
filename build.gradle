@@ -1,0 +1,66 @@
+plugins {
+    id 'org.springframework.boot' version '2.5.4'
+    id 'io.spring.dependency-management' version '1.0.11.RELEASE'
+    id 'java'
+    id "com.github.node-gradle.node" version "3.0.1"
+}
+
+group = 'com.tyson'
+version = '0.0.1-SNAPSHOT'
+sourceCompatibility = '16'
+
+repositories {
+    mavenCentral()
+}
+
+node {
+    version = '16.6.0'
+
+    download = true
+
+    workDir = file("${project.projectDir}/src/main/frontend/nodejs")
+
+    npmWorkDir = file("${project.projectDir}/src/main/frontend/npm")
+
+    nodeModulesDir = file("${project.projectDir}/src/main/frontend")
+}
+
+task npmInstallDependencies(type: NpmTask){
+    dependsOn 'npmSetup'
+    execOverrides {
+        it.ignoreExitValue = true
+        it.workingDir = 'src/main/frontend'
+    }
+    args = ['install']
+}
+
+task npmBuild(type: NpmTask) {
+    dependsOn 'npmInstallDependencies'
+    execOverrides{
+        it.workingDir = 'src/main/frontend'
+    }
+    args = ['run', 'build']
+}
+
+task copyFrontendToBuild(type: Copy){
+    dependsOn 'npmBuild'
+    from "$projectDir/src/main/frontend/build/"
+    into "$buildDir/resources/main/static"
+}
+
+processResources{
+    dependsOn 'copyFrontendToBuild'
+}
+dependencies {
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    implementation 'org.springframework.boot:spring-boot-starter-oauth2-client'
+    implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    developmentOnly 'org.springframework.boot:spring-boot-devtools'
+    runtimeOnly 'org.postgresql:postgresql'
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+}
+
+test {
+    useJUnitPlatform()
+}
